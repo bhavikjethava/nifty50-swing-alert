@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Stock {
+  id        Int      @id @default(autoincrement())
+  symbol    String   @unique
+  name      String
+  sector    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  news       News[]
+  alerts     Alert[]
+  snapshots  TechnicalSnapshot[]
+}
+
+model News {
+  id          Int       @id @default(autoincrement())
+  stockId     Int
+  title       String
+  source      String
+  url         String    @unique
+  summary     String?
+  sentiment   String
+  publishedAt DateTime
+  createdAt   DateTime  @default(now())
+
+  stock Stock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@index([stockId, publishedAt])
+  @@index([sentiment, publishedAt])
+}
+
+model TechnicalSnapshot {
+  id           Int       @id @default(autoincrement())
+  stockId      Int
+  price        Float
+  volume       Float
+  ema20        Float
+  ema50        Float
+  ema200       Float
+  avgVolume20  Float
+  trend        String
+  reasons      String
+  scannedAt    DateTime  @default(now())
+
+  stock Stock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@index([stockId, scannedAt])
+  @@index([trend, scannedAt])
+}
+
+model Alert {
+  id        Int      @id @default(autoincrement())
+  stockId   Int
+  signal    String
+  price     Float
+  message   String
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  stock Stock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@index([stockId, createdAt])
+  @@index([signal, createdAt])
+}
