@@ -1,5 +1,6 @@
 name: Daily Paper Trade
 
+# Paper-trading cron for the Nifty50 swing strategy.
 # Runs once each weekday after Indian market close (15:30 IST = 10:00 UTC).
 # Scans fresh technicals, runs one paper-trading cycle, and commits the updated
 # SQLite DB back so trade history persists across runs.
