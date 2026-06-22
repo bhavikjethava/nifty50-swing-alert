@@ -4,7 +4,8 @@ dist
 coverage
 .env
 .env*.local
-prisma/dev.db
+# prisma/dev.db is intentionally tracked so the GitHub Actions paper-trading
+# cron can persist trade history across daily runs.
 prisma/dev.db-journal
 *.log
 *.tsbuildinfo
