@@ -17,6 +17,7 @@
     "scan:technicals": "tsx scripts/scan-technicals.ts",
     "send-alerts": "tsx scripts/send-alerts.ts",
     "backtest": "tsx scripts/backtest.ts",
+    "paper-trade": "tsx scripts/paper-trade.ts",
     "worker": "tsx scripts/worker.ts"
   },
   "dependencies": {

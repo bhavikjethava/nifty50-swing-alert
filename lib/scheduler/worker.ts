@@ -1,4 +1,5 @@
 import cron from "node-cron";
+import { runPaperTradingCycle } from "@/lib/paper/engine";
 import { generateAlerts, sendPendingAlerts } from "@/lib/scanners/alerts";
 import { scanNews } from "@/lib/scanners/news";
 import { scanTechnicals } from "@/lib/scanners/technicals";
@@ -27,6 +28,8 @@ export function startWorker() {
       await scanTechnicals();
       await generateAlerts();
       await sendPendingAlerts();
+      // Paper-trade on the fresh signals: close exits, open new BUYs.
+      await runPaperTradingCycle();
     } finally {
       runningTechnicals = false;
     }
