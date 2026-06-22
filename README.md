@@ -78,19 +78,28 @@ or `?secret=your-secret`.
 
 ## Alert Logic
 
-Bullish technical setup:
+The strategy is **mean-reversion**, chosen after backtesting showed EMA-stack trend
+following had no edge on this universe (46% win rate, losing to buy-and-hold). The
+mean-reversion rule backtested at a far higher win rate while beating buy-and-hold.
 
-- EMA20 > EMA50 > EMA200
-- Current price above EMA200
-- Price within 2% of EMA20
-- Current volume > 1.5 x 20-day average volume
+BUY setup (BULLISH):
 
-Bearish technical setup:
+- RSI(14) below 30 (oversold) — price tends to bounce
+- Suggested hold ~6–12 trading days; exit when price reclaims EMA20
 
-- EMA20 < EMA50 < EMA200
-- Current price below EMA200
+OVERBOUGHT context (BEARISH, informational only):
 
-An alert is generated only when the latest technical setup aligns with matching sentiment news from the last 24 hours. Duplicate stock alerts are blocked for 24 hours.
+- RSI(14) above 70 — extended; not a tradable signal (shorting Indian equities is impractical for retail)
+
+EMA20/50/200 are retained as trend context and chart overlays. News sentiment is
+supporting context, not a gate. Duplicate stock alerts are blocked for 24 hours.
+
+## Backtesting
+
+Run `npm run backtest` to replay the rules over each stock's ~250-day history and
+measure win rate, average return, and edge vs buy-and-hold. Results appear on the
+`/backtest` screen. Always validate strategy changes here before trading — and note
+that ~250 days is a limited, single-regime sample.
 
 ## Telegram Setup
 

@@ -13,26 +13,25 @@ function candle(close: number, volume = 1000): Candle {
   };
 }
 
-describe("evaluateTechnicals", () => {
-  it("identifies bullish swing setups near EMA20 with a volume surge", () => {
-    const base = Array.from({ length: 240 }, (_, index) => candle(100 + index * 0.2, 1000));
-    const nearTrendPrice = base[base.length - 1].close;
-    const candles = [...base, candle(nearTrendPrice, 3000)];
-
-    const result = evaluateTechnicals(candles);
+describe("evaluateTechnicals (mean-reversion)", () => {
+  it("flags an oversold sell-off as BULLISH (mean-reversion buy)", () => {
+    // Long flat history, then a sharp sustained drop drives RSI below 30.
+    const flat = Array.from({ length: 230 }, () => candle(100));
+    const selloff = Array.from({ length: 15 }, (_, i) => candle(100 - (i + 1) * 2));
+    const result = evaluateTechnicals([...flat, ...selloff]);
 
     expect(result.signal).toBe("BULLISH");
-    expect(result.reasons).toContain("EMA20 > EMA50 > EMA200");
-    expect(result.reasons).toContain("Volume above 1.5x 20-day average");
+    expect(result.reasons.some((r) => r.includes("Oversold"))).toBe(true);
+    expect(result.holdMaxDays).toBeGreaterThan(0);
   });
 
-  it("identifies bearish trend setups below EMA200", () => {
-    const candles = Array.from({ length: 250 }, (_, index) => candle(250 - index * 0.5, 1000));
-
-    const result = evaluateTechnicals(candles);
+  it("flags an overbought rally as BEARISH (informational, not a buy)", () => {
+    const flat = Array.from({ length: 230 }, () => candle(100));
+    const rally = Array.from({ length: 15 }, (_, i) => candle(100 + (i + 1) * 2));
+    const result = evaluateTechnicals([...flat, ...rally]);
 
     expect(result.signal).toBe("BEARISH");
-    expect(result.reasons).toContain("EMA20 < EMA50 < EMA200");
+    expect(result.holdMaxDays).toBe(0);
   });
 
   it("rejects insufficient history", () => {

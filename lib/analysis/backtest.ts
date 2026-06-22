@@ -45,7 +45,8 @@ export function backtestSymbol(symbol: string, candles: Candle[]): BacktestResul
       continue;
     }
 
-    if (evaluation.signal === "NEUTRAL") {
+    // Long-only mean-reversion: trade only the BULLISH (oversold) signal.
+    if (evaluation.signal !== "BULLISH") {
       cursor += 1;
       continue;
     }
@@ -55,16 +56,14 @@ export function backtestSymbol(symbol: string, candles: Candle[]): BacktestResul
     const entryPrice = candles[entryIndex].close;
     const horizon = Math.max(evaluation.holdMaxDays, 1);
 
-    // Walk forward to the exit: hold horizon, or an EMA50 close-cross against us.
+    // Exit when price reclaims EMA20 (bounce complete) or at the hold horizon.
     let exitIndex = Math.min(entryIndex + horizon, candles.length - 1);
     let exitReason: Trade["exitReason"] = exitIndex === candles.length - 1 ? "end-of-data" : "horizon";
 
     for (let i = entryIndex + 1; i <= Math.min(entryIndex + horizon, candles.length - 1); i += 1) {
-      const ema50 = latestFinite(ema(candles.slice(0, i + 1).map((c) => c.close), 50));
-      if (ema50 == null) continue;
-      const close = candles[i].close;
-      const crossed = signal === "BULLISH" ? close < ema50 : close > ema50;
-      if (crossed) {
+      const ema20 = latestFinite(ema(candles.slice(0, i + 1).map((c) => c.close), 20));
+      if (ema20 == null) continue;
+      if (candles[i].close >= ema20) {
         exitIndex = i;
         exitReason = "ema50-cross";
         break;
@@ -72,8 +71,7 @@ export function backtestSymbol(symbol: string, candles: Candle[]): BacktestResul
     }
 
     const exitPrice = candles[exitIndex].close;
-    const rawReturn = (exitPrice - entryPrice) / entryPrice;
-    const directedReturn = signal === "BULLISH" ? rawReturn : -rawReturn;
+    const directedReturn = (exitPrice - entryPrice) / entryPrice;
 
     trades.push({
       signal,
