@@ -16,6 +16,7 @@
     "scan:news": "tsx scripts/scan-news.ts",
     "scan:technicals": "tsx scripts/scan-technicals.ts",
     "send-alerts": "tsx scripts/send-alerts.ts",
+    "backtest": "tsx scripts/backtest.ts",
     "worker": "tsx scripts/worker.ts"
   },
   "dependencies": {

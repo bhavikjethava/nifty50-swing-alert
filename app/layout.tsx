@@ -1,7 +1,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, BellRing, LineChart, Target } from "lucide-react";
+import { Activity, BellRing, FlaskConical, LineChart, Target } from "lucide-react";
 import "./globals.css";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -32,6 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
                 <Link className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-secondary sm:flex" href="/signals">
                   <Target size={16} /> Signals
+                </Link>
+                <Link className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-secondary sm:flex" href="/backtest">
+                  <FlaskConical size={16} /> Backtest
                 </Link>
                 <Link className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-secondary sm:flex" href="/watchlist">
                   <BellRing size={16} /> Watchlist

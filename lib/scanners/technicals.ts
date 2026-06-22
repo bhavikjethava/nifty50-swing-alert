@@ -28,7 +28,11 @@ export async function scanTechnicals() {
           ema200: evaluation.ema200,
           avgVolume20: evaluation.avgVolume20,
           trend: evaluation.signal,
-          reasons: JSON.stringify(evaluation.reasons)
+          reasons: JSON.stringify(evaluation.reasons),
+          holdMinDays: evaluation.holdMinDays,
+          holdMaxDays: evaluation.holdMaxDays,
+          holdConfidence: evaluation.holdConfidence,
+          exitRule: evaluation.exitRule
         }
       });
 

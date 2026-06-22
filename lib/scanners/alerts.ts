@@ -75,25 +75,28 @@ export async function generateAlerts() {
       continue;
     }
 
-    const matchingNews = stock.news.find((news) => {
-      return (
-        (latestSnapshot.trend === "BULLISH" && news.sentiment === "POSITIVE") ||
-        (latestSnapshot.trend === "BEARISH" && news.sentiment === "NEGATIVE")
-      );
-    });
-
-    if (!matchingNews || latestSnapshot.trend === "NEUTRAL") {
+    // Fire on a confirmed technical setup. News is supporting context if a
+    // matching-sentiment headline exists, but is no longer required — the strict
+    // news AND-gate combined with mostly-neutral sentiment blocked nearly all alerts.
+    if (latestSnapshot.trend === "NEUTRAL") {
       continue;
     }
 
     const signal: Signal = latestSnapshot.trend === "BULLISH" ? "BULLISH" : "BEARISH";
+    const matchingNews = stock.news.find((news) => {
+      return (
+        (signal === "BULLISH" && news.sentiment === "POSITIVE") ||
+        (signal === "BEARISH" && news.sentiment === "NEGATIVE")
+      );
+    });
+
     const message = buildAlertMessage({
       symbol: stock.symbol,
       signal,
       price: latestSnapshot.price,
       reasons: JSON.parse(latestSnapshot.reasons) as string[],
-      newsTitle: matchingNews.title,
-      sentiment: matchingNews.sentiment
+      newsTitle: matchingNews?.title ?? "No confirming news in the last 24h.",
+      sentiment: matchingNews?.sentiment ?? "NONE"
     });
 
     const alert = await prisma.alert.create({

@@ -15,14 +15,17 @@ export type StockSignal = {
   newsTitle: string | null;
   reasons: string[];
   scannedAt: Date | null;
+  holdMinDays: number;
+  holdMaxDays: number;
+  holdConfidence: string;
+  exitRule: string;
 };
 
-// Strict rule (matches the alert engine): BUY needs a bullish technical setup AND
-// positive news in the last 24h; SELL needs a bearish setup AND negative news.
-// Everything else is HOLD.
-function decide(trend: string | null, sentiment: string | null): SignalVerdict {
-  if (trend === "BULLISH" && sentiment === "POSITIVE") return "BUY";
-  if (trend === "BEARISH" && sentiment === "NEGATIVE") return "SELL";
+// Matches the alert engine: BUY on a bullish technical setup, SELL on bearish,
+// HOLD when neutral. Matching-sentiment news raises confidence but is not required.
+function decide(trend: string | null): SignalVerdict {
+  if (trend === "BULLISH") return "BUY";
+  if (trend === "BEARISH") return "SELL";
   return "HOLD";
 }
 
@@ -30,13 +33,18 @@ function explain(verdict: SignalVerdict, trend: string | null, sentiment: string
   if (!trend) return ["No technical snapshot yet — run the technicals scan."];
 
   const reasons: string[] = [`Technical trend: ${trend}`];
+  const confirmed =
+    (verdict === "BUY" && sentiment === "POSITIVE") || (verdict === "SELL" && sentiment === "NEGATIVE");
+
   reasons.push(sentiment ? `News sentiment (24h): ${sentiment}` : "No qualifying news in last 24h");
 
-  if (verdict === "BUY") reasons.push("Bullish setup confirmed by positive news");
-  else if (verdict === "SELL") reasons.push("Bearish setup confirmed by negative news");
-  else if (trend === "BULLISH") reasons.push("Bullish setup, but no positive news to confirm");
-  else if (trend === "BEARISH") reasons.push("Bearish setup, but no negative news to confirm");
-  else reasons.push("No clear directional setup");
+  if (verdict === "BUY") {
+    reasons.push(confirmed ? "Bullish setup confirmed by positive news (high conviction)" : "Bullish setup (no confirming news)");
+  } else if (verdict === "SELL") {
+    reasons.push(confirmed ? "Bearish setup confirmed by negative news (high conviction)" : "Bearish setup (no confirming news)");
+  } else {
+    reasons.push("No clear directional setup");
+  }
 
   return reasons;
 }
@@ -60,7 +68,7 @@ export async function getSignals(): Promise<StockSignal[]> {
     const news = stock.news[0] ?? null;
     const trend = snapshot?.trend ?? null;
     const sentiment = news?.sentiment ?? null;
-    const verdict = decide(trend, sentiment);
+    const verdict = decide(trend);
 
     return {
       id: stock.id,
@@ -73,7 +81,11 @@ export async function getSignals(): Promise<StockSignal[]> {
       sentiment,
       newsTitle: news?.title ?? null,
       reasons: explain(verdict, trend, sentiment),
-      scannedAt: snapshot?.scannedAt ?? null
+      scannedAt: snapshot?.scannedAt ?? null,
+      holdMinDays: snapshot?.holdMinDays ?? 0,
+      holdMaxDays: snapshot?.holdMaxDays ?? 0,
+      holdConfidence: snapshot?.holdConfidence ?? "LOW",
+      exitRule: snapshot?.exitRule ?? ""
     };
   });
 

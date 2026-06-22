@@ -48,12 +48,29 @@ model TechnicalSnapshot {
   avgVolume20  Float
   trend        String
   reasons      String
+  holdMinDays    Int     @default(0)
+  holdMaxDays    Int     @default(0)
+  holdConfidence String  @default("LOW")
+  exitRule       String  @default("")
   scannedAt    DateTime  @default(now())
 
   stock Stock @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
   @@index([stockId, scannedAt])
   @@index([trend, scannedAt])
+}
+
+model Backtest {
+  id               Int      @id @default(autoincrement())
+  symbol           String   @unique
+  trades           Int
+  wins             Int
+  winRate          Float
+  avgReturnPct     Float
+  totalReturnPct   Float
+  buyHoldReturnPct Float
+  avgHeldDays      Float
+  ranAt            DateTime @default(now())
 }
 
 model Alert {
