@@ -32,7 +32,9 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # npm install (not ci) so the Linux runner resolves platform-specific optional
+      # deps even if the lockfile was generated on a different OS.
+      - run: npm install --no-audit --no-fund
 
       - name: Prepare database
         run: |
