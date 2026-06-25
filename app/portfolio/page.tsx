@@ -70,32 +70,42 @@ export default async function PortfolioPage() {
                   <TableHead>Qty</TableHead>
                   <TableHead>Entry</TableHead>
                   <TableHead>Last</TableHead>
+                  <TableHead>Invested</TableHead>
                   <TableHead>Market Value</TableHead>
                   <TableHead>Unrealized P&amp;L</TableHead>
-                  <TableHead>Since</TableHead>
+                  <TableHead>Held</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {holdings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
                       No open positions. The strategy buys when a stock signals oversold (BUY).
                     </TableCell>
                   </TableRow>
                 ) : (
-                  holdings.map((h) => (
-                    <TableRow key={h.id}>
-                      <TableCell className="font-semibold">{h.symbol.replace(".NS", "")}</TableCell>
-                      <TableCell>{h.quantity}</TableCell>
-                      <TableCell>{formatMoney(h.entryPrice)}</TableCell>
-                      <TableCell>{formatMoney(h.lastPrice)}</TableCell>
-                      <TableCell>{formatMoney(h.marketValue)}</TableCell>
-                      <TableCell className={pnlClass(h.unrealizedPnl)}>
-                        {signed(h.unrealizedPnl)} <span className="text-xs">({h.unrealizedPnlPct.toFixed(1)}%)</span>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatDateTime(h.entryDate)}</TableCell>
-                    </TableRow>
-                  ))
+                  holdings.map((h) => {
+                    const daysHeld = Math.max(
+                      0,
+                      Math.floor((Date.now() - new Date(h.entryDate).getTime()) / 86400000)
+                    );
+                    return (
+                      <TableRow key={h.id}>
+                        <TableCell className="font-semibold">{h.symbol.replace(".NS", "")}</TableCell>
+                        <TableCell>{h.quantity}</TableCell>
+                        <TableCell>{formatMoney(h.entryPrice)}</TableCell>
+                        <TableCell>{formatMoney(h.lastPrice)}</TableCell>
+                        <TableCell>{formatMoney(h.cost)}</TableCell>
+                        <TableCell>{formatMoney(h.marketValue)}</TableCell>
+                        <TableCell className={pnlClass(h.unrealizedPnl)}>
+                          {signed(h.unrealizedPnl)} <span className="text-xs">({h.unrealizedPnlPct.toFixed(1)}%)</span>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {daysHeld}d / {h.holdMaxDays}d
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
