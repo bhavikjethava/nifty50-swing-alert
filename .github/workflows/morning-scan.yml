@@ -1,0 +1,73 @@
+name: Morning Scan & Alert
+
+# Morning signal refresh for the Nifty50 swing strategy.
+# Runs once each weekday 30 min after Indian market open (09:15 IST open →
+# 09:45 IST = 04:15 UTC). Scans news + technicals and sends alerts so early
+# signals surface intraday. Does NOT paper-trade — trading stays close-only
+# (see daily-scan.yml) to avoid entering on noisy intraday prices.
+# Commits the updated SQLite DB back so scan history persists across runs.
+on:
+  schedule:
+    - cron: "15 4 * * 1-5"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+# Prevent overlapping runs from racing on the committed DB.
+concurrency:
+  group: morning-scan
+  cancel-in-progress: false
+
+jobs:
+  morning-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      DATABASE_URL: "file:./dev.db"
+      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # npm install (not ci) so the Linux runner resolves platform-specific optional
+      # deps even if the lockfile was generated on a different OS.
+      - run: npm install --no-audit --no-fund
+
+      - name: Prepare database
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+          npx tsx prisma/seed.ts
+
+      - name: Scan news
+        run: npm run scan:news
+        continue-on-error: true # source flakiness shouldn't fail the whole run
+
+      - name: Scan technicals
+        run: npm run scan:technicals
+        continue-on-error: true # rate limits shouldn't fail the whole run
+
+      - name: Send any pending alerts
+        run: npm run send-alerts
+        continue-on-error: true
+
+      - name: Persist database
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add prisma/dev.db
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: morning scan $(date -u +%Y-%m-%d)"
+          # Rebase onto anything pushed since checkout, then push. Retry a few
+          # times in case another workflow pushes in the same window.
+          for attempt in 1 2 3; do
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $attempt failed, retrying..."
+            sleep 5
+          done
+          echo "::error::failed to persist DB after 3 attempts" && exit 1
