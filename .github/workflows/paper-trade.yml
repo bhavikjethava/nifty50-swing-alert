@@ -58,5 +58,21 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add prisma/dev.db
-          git diff --staged --quiet || git commit -m "chore: paper-trade run $(date -u +%Y-%m-%d)"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: paper-trade run $(date -u +%Y-%m-%d)"
+          # dev.db is binary and cannot be merged, so never rebase it. Instead,
+          # last-writer-wins: if the push is rejected because another scan job
+          # pushed first, re-point HEAD at the new remote tip while KEEPING our
+          # freshly-written DB (git reset --soft preserves the working tree),
+          # re-commit, and retry. This can't lose a scan's data to a conflict.
+          for attempt in 1 2 3 4 5; do
+            git push && exit 0
+            echo "push attempt $attempt rejected; re-basing our DB onto the new remote tip"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git reset --soft "origin/${GITHUB_REF_NAME}"
+            git add prisma/dev.db
+            git diff --staged --quiet && exit 0
+            git commit -m "chore: paper-trade run $(date -u +%Y-%m-%d)"
+            sleep 3
+          done
+          echo "::error::failed to persist DB after 5 attempts" && exit 1
